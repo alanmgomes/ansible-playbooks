@@ -9,7 +9,15 @@
         password: "{{ new_password | password_hash('sha512') }}"
         state: present
         createhome: yes
-
+        
+    - name: Create SSH directory for the user
+      file:
+        path: "/home/{{ new_username }}/.ssh"
+        state: directory
+        owner: "{{ new_username }}"
+        group: "{{ new_username }}"
+        mode: 0700
+        
     - name: Generate SSH key for the user
       openssh_keypair:
         path: "/home/{{ new_username }}/.ssh/id_rsa"
