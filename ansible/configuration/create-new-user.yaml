@@ -1,6 +1,6 @@
 ---
 - name: Create a new user
-  hosts: all
+  hosts: {{ hostname }}
   become: true
 
   tasks:
