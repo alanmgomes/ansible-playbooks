@@ -47,9 +47,11 @@
 
         - name: Run setup script
           become: yes
-          shell: npm run setup
+          shell: npm run setup &
           args:
             chdir: /opt/uptime-kuma
+            async: 60
+            poll: 0
 
         - name: Install pm2 if not installed
           command: npm install pm2 -g
