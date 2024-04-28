@@ -47,6 +47,7 @@
           command: git config --global --add safe.directory /opt/uptime-kuma
 
         - name: Run setup script
+          become: yes
           shell: npm run setup
           args:
             chdir: /opt/uptime-kuma
