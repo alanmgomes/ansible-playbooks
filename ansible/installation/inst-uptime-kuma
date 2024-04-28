@@ -1,0 +1,65 @@
+---
+- name: Install required packages on Debian
+  hosts: "{{ hostname }}"
+  become: yes
+
+  tasks:
+    - name: pre_reqs
+      block:
+
+        - name: Update apt cache
+          apt:
+            update_cache: yes
+
+        - name: Install Node.js and npm
+          apt:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - nodejs
+            - npm
+
+        - name: Install Git
+          apt:
+            name: git
+            state: present
+
+        - name: Install pm2
+          npm:
+            name: pm2
+            global: yes
+
+    - name: setup_uptime_kuma
+      block:
+
+        - name: Update npm
+          npm:
+            name: npm@9
+            global: yes
+
+        - name: Clone Uptime Kuma repository
+          git:
+            repo: https://github.com/louislam/uptime-kuma.git
+            dest: /opt/uptime-kuma
+            clone_depth: 1
+
+        - name: Run setup script
+          shell: npm run setup
+          args:
+            chdir: /opt/uptime-kuma
+
+        - name: Install pm2 if not installed
+          command: npm install pm2 -g
+          args:
+            creates: /usr/local/bin/pm2
+
+        - name: Install pm2-logrotate
+          command: pm2 install pm2-logrotate
+          args:
+            creates: /usr/local/lib/node_modules/pm2/node_modules/pm2-logrotate
+
+        - name: Start Uptime Kuma with PM2
+          command: pm2 start server/server.js --name uptime-kuma
+          args:
+            chdir: /opt/uptime-kuma
+            creates: /root/.pm2/pids/uptime-kuma-0.pid
