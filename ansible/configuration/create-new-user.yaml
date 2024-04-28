@@ -25,3 +25,9 @@
         group: "{{ new_username }}"
         size: 2048
         state: present
+
+    - name: Add user to sudoers
+      lineinfile:
+        path: /etc/sudoers
+        line: "{{ new_username }} ALL=(ALL) NOPASSWD: ALL"
+        validate: 'visudo -cf %s'
