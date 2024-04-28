@@ -37,12 +37,8 @@
             name: npm@9
             global: yes
 
-        - name: Clone Uptime Kuma repository
-          git:
-            repo: https://github.com/louislam/uptime-kuma.git
-            dest: /opt/uptime-kuma
-            depth: 1
-            clone_tags: yes
+        - name: Clone Uptime Kuma repository with all tags
+          command: git clone --mirror https://github.com/louislam/uptime-kuma.git /opt/uptime-kuma
             
         - name: Configure Git for /opt/uptime-kuma
           command: git config --global --add safe.directory /opt/uptime-kuma
