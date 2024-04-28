@@ -1,0 +1,17 @@
+---
+- name: Create a new user
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Create the user
+      user:
+        name: "{{ new_username }}"
+        password: "{{ new_password | password_hash('sha512') }}"
+        state: present
+        createhome: yes
+
+    - name: Generate SSH key for the user
+      ansible.posix.ssh_keypair:
+        user: "{{ new_username }}"
+        regenerate: no
