@@ -12,6 +12,9 @@
         createhome: yes
 
     - name: Generate SSH key for the user
-      ansible.posix.ssh_keypair:
-        user: "{{ new_username }}"
-        regenerate: no
+      openssh_keypair:
+        path: "/home/{{ new_username }}/.ssh/id_rsa"
+        owner: "{{ new_username }}"
+        group: "{{ new_username }}"
+        size: 2048
+        state: present
