@@ -42,6 +42,9 @@
             repo: https://github.com/louislam/uptime-kuma.git
             dest: /opt/uptime-kuma
             depth: 1
+            
+        - name: Configure Git for /opt/uptime-kuma
+          command: git config --global --add safe.directory /opt/uptime-kuma
 
         - name: Run setup script
           shell: npm run setup
