@@ -42,12 +42,8 @@
             repo: https://github.com/louislam/uptime-kuma.git
             dest: /opt/uptime-kuma
             depth: 1
-        
-        - name: Fetch all tags
-          git:
-            repo: /opt/uptime-kuma
-            tags: true
-            force: yes
+            track_submodules: true
+            version: "1.23.13"
 
         - name: Run setup script
           become: yes
