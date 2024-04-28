@@ -41,7 +41,7 @@
           git:
             repo: https://github.com/louislam/uptime-kuma.git
             dest: /opt/uptime-kuma
-            clone_depth: 1
+            depth: 1
 
         - name: Run setup script
           shell: npm run setup
