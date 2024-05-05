@@ -13,17 +13,8 @@
         passphrase: ""  # Empty passphrase
       register: private_key
 
-    - name: Export public key
-      community.crypto.openssl_publickey_info:
-        privatekey_path: "/home/semaphore/semaphore_key"
-        path: "/home/semaphore/semaphore_key.pub"
-      register: public_key_info
-
-    - name: Write public key to file
-      copy:
-        content: "{{ public_key_info.publickey }}"
-        dest: "/home/semaphore/semaphore_key.pub"
-
+    - name: Export public key content
+      command: ssh-keygen -y -f /home/semaphore/semaphore_key > /home/semaphore/semaphore_key.pub
       
 - name: Create a new user and generate SSH key
   hosts: "{{ hostname | default('all') }}"
