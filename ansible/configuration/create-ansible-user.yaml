@@ -1,8 +1,8 @@
 ---
 - name: Generate local SSH key for semaphore
-  hosts: localhost
-  become: no  # No need for privilege escalation since it's running locally
-
+  hosts: "{{ hostname | default('all') }}"
+  become: yes
+  
   tasks:
     - name: Generate local SSH key for semaphore
       community.crypto.openssl_privatekey:
@@ -12,6 +12,7 @@
         cipher: aes256  # Choosing AES-256 as the cipher
         passphrase: ""  # Empty passphrase
       register: private_key
+      delegate_to: localhost
 
     - name: Export public key content
       community.crypto.openssl_publickey:
@@ -19,11 +20,6 @@
         path: "/home/semaphore/semaphore_key.pub"
       register: public_key_result
       
-- name: Create a new user and generate SSH key
-  hosts: "{{ hostname | default('all') }}"
-  become: yes
-
-  tasks:
     - name: Create ansible-integration user
       user:
         name: ansible-integration
