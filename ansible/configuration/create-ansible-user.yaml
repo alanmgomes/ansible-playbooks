@@ -45,7 +45,7 @@
       openssh_keypair:
         path: "/home/ansible-integration/.ssh/id_rsa"
         state: present
-        type: RSA
+        type: rsa
         size: 2048
         owner: ansible-integration
         group: ansible-integration
