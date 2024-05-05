@@ -9,7 +9,8 @@
         path: "/home/semaphore/semaphore_key"
         type: RSA
         size: 2048
-        passphrase: ""
+        cipher: aes256  # Choosing AES-256 as the cipher
+        passphrase: ""  # Empty passphrase
       register: private_key
 
     - name: Export public key
