@@ -14,7 +14,7 @@
       register: private_key
 
     - name: Export public key content
-      command: ssh-keygen -y -f /home/semaphore/semaphore_key > /home/semaphore/semaphore_key.pub
+      command: "ssh-keygen -y -f /home/semaphore/semaphore_key > /home/semaphore/semaphore_key.pub"
       
 - name: Create a new user and generate SSH key
   hosts: "{{ hostname | default('all') }}"
