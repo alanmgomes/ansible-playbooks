@@ -1,0 +1,62 @@
+---
+- name: Generate local SSH key for semaphore
+  hosts: localhost
+  become: no  # No need for privilege escalation since it's running locally
+
+  tasks:
+    - name: Generate local SSH key for semaphore
+      community.crypto.openssl_privatekey:
+        path: "/home/semaphore/semaphore_key"
+        type: rsa
+        size: 2048
+        passphrase: ""
+      register: private_key
+
+    - name: Export public key
+      community.crypto.openssl_publickey_info:
+        privatekey_path: "/home/semaphore/semaphore_key"
+      register: public_key_info
+
+    - name: Write public key to file
+      copy:
+        content: "{{ public_key_info.publickey }}"
+        dest: "/home/semaphore/semaphore_key.pub"
+
+      
+- name: Create a new user and generate SSH key
+  hosts: "{{ hostname | default('all') }}"
+  become: yes
+
+  tasks:
+    - name: Create ansible-integration user
+      user:
+        name: ansible-integration
+        state: present
+        createhome: yes
+        comment: "Ansible Integration User"
+        shell: "/bin/bash"
+        home: "/home/ansible-integration"
+
+    - name: Ensure .ssh directory exists for ansible-integration
+      file:
+        path: "/home/ansible-integration/.ssh"
+        state: directory
+        owner: ansible-integration
+        group: ansible-integration
+        mode: '0700'
+
+    - name: Generate SSH key for ansible-integration
+      openssh_keypair:
+        path: "/home/ansible-integration/.ssh/id_rsa"
+        state: present
+        type: rsa
+        size: 2048
+        owner: ansible-integration
+        group: ansible-integration
+        mode: '0600'
+            
+    - name: Import local SSH key for ansible-integration
+      authorized_key:
+        user: ansible-integration
+        key: "{{ lookup('file', '/home/semaphore/semaphore_key.pub') }}"
+        state: present
