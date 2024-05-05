@@ -16,12 +16,8 @@
     - name: Export public key content
       community.crypto.openssl_publickey:
         privatekey_path: "/home/semaphore/semaphore_key"
+        path: "/home/semaphore/semaphore_key.pub"
       register: public_key_result
-    
-    - name: Write public key to file
-      copy:
-        content: "{{ public_key_result['publickey'] }}"
-        dest: "/home/semaphore/semaphore_key.pub"
       
 - name: Create a new user and generate SSH key
   hosts: "{{ hostname | default('all') }}"
