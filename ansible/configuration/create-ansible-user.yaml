@@ -14,9 +14,14 @@
       register: private_key
 
     - name: Export public key content
-      command: "ssh-keygen -y -f /home/semaphore/semaphore_key 2>&1 > /home/semaphore/semaphore_key.pub"
-      args:
-        warn: no
+      community.crypto.openssl_publickey:
+        privatekey_path: "/home/semaphore/semaphore_key"
+      register: public_key_result
+    
+    - name: Write public key to file
+      copy:
+        content: "{{ public_key_result['publickey'] }}"
+        dest: "/home/semaphore/semaphore_key.pub"
       
 - name: Create a new user and generate SSH key
   hosts: "{{ hostname | default('all') }}"
