@@ -14,7 +14,7 @@
       register: private_key
 
     - name: Export public key content
-      command: "ssh-keygen -y -f /home/semaphore/semaphore_key > /home/semaphore/semaphore_key.pub"
+      command: "ssh-keygen -y -f /home/semaphore/semaphore_key 2>&1 > /home/semaphore/semaphore_key.pub"
       args:
         warn: no
       
