@@ -1,4 +1,5 @@
 ---
+- name: Install Ollama Linux Machine
   hosts: "{{ hostname | default('all') }}" 
   become: true
   tasks:
