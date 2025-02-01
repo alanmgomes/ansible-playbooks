@@ -65,9 +65,13 @@
         - debug:
             msg: "Pull status: {{ pull_status }}"
 
-        - name: Fail if the image pull failed
-          fail_when: pull_status.result.rc != 0 or pull_status.result is not defined or pull_status.result.stderr is defined # Improved condition
-          msg: "Image pull failed: {{ pull_status.result.stderr | default('No error message') }}" # More informative message
+        - name: Assert successful image pull
+          assert:
+            that:
+              - pull_status.result.rc == 0
+              - pull_status.result is defined
+              - pull_status.result.stderr is not defined  # Or check for empty string
+            msg: "Image pull failed: {{ pull_status.result.stderr | default('No error message') }}"
       become: false #Don't run the image pull as root
       run_once: true #Only run once
 
