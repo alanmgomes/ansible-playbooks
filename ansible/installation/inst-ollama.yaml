@@ -75,16 +75,30 @@
       become: false #Don't run the image pull as root
       run_once: true #Only run once
 
-    - name: Run the Ollama image
+    - name: Run the Ollama image in the background
       block:
-        - name: Run the Ollama container (detach if needed)
-          command: "ollama run llama3.2:latest"
+        - name: Run Ollama (background process)
+          shell: "ollama run llama3.2:latest > /dev/null 2>&1 &"  # Redirect output and run in background
           args:
-            chdir: "/home/ollama" #Run from a user home directory
-          detach: true # Run in the background
-          register: run_result
-      become: false
-      run_once: true #Only run once
+            chdir: "/home/ollama"
+            executable: /bin/bash
+          register: ollama_run_result
 
-    - debug:
-        msg: "Ollama run command executed."
+        - name: Wait a short time for Ollama to start (adjust as needed)
+          pause:
+            seconds: 5
+
+        - name: Check if Ollama is running (optional)
+          shell: "pgrep ollama" # Or a more specific check
+          register: ollama_running
+          ignore_errors: true #Don't fail if not found
+
+        - debug:
+            msg: "Ollama running check: {{ ollama_running.stdout }}"
+
+        - name: Fail if ollama didn't seem to start
+          fail_when: ollama_running.rc != 0
+          msg: "Ollama did not seem to start correctly"
+
+      become: false
+      run_once: true
