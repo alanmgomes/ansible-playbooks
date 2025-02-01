@@ -1,6 +1,6 @@
 ---
 - name: Install OpenObserve Agent on Linux Machine
-  hosts: "{{ hostname }}"
+  hosts: "{{ hostname | default('all') }}"
   tasks:
     - name: Download OpenObserve agent install script
       get_url:
