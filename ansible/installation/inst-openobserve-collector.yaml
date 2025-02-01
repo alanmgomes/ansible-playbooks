@@ -1,0 +1,27 @@
+---
+- name: Install OpenObserve Agent on Linux Machine
+  hosts: "{{ hostname }}"
+  tasks:
+    - name: Download OpenObserve agent install script
+      get_url:
+        url: https://raw.githubusercontent.com/openobserve/agents/main/linux/install.sh
+        dest: /tmp/install.sh
+        mode: 0755  # Make the script executable
+
+    - name: Install OpenObserve agent
+      shell: /tmp/install.sh http://{{ openobserve_url }}/api/default/ {{ openobserve_token }}
+      args:
+        executable: /bin/bash # Ensure bash is used for the script execution. It might be sh by default which can cause issues.
+      register: install_result # Register the result for debugging
+
+    - debug:  # Optional: Print the output of the installation for debugging
+        msg: "{{ install_result.stdout_lines }}"
+
+    - debug:  # Optional: Print the error if the installation fails
+        msg: "{{ install_result.stderr_lines }}"
+      when: install_result.rc != 0 # Only show the error if return code is not 0.
+
+    - name: Remove the install script (optional, but good practice)
+      file:
+        path: /tmp/install.sh
+        state: absent
