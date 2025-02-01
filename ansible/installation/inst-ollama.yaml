@@ -1,0 +1,85 @@
+---
+  hosts: "{{ hostname | default('all') }}" 
+  become: true
+  tasks:
+
+    - name: Check if Ollama is already installed
+      stat:
+        path: /usr/local/bin/ollama  # Or wherever ollama is installed
+      register: ollama_installed
+
+    - name: Install Ollama if not installed or if update is desired
+      block:
+        - name: Download and install Ollama
+          shell: "curl -fsSL https://ollama.com/install.sh | sh"
+          args:
+            executable: /bin/bash # explicitly set the shell for the pipe to work
+          register: ollama_install_output
+          # Check for errors during installation
+          failed_when: ollama_install_output.rc != 0
+          # Optionally print the output for debugging
+          when: ollama_installed.stat.exists == false or update_ollama is defined
+
+        - name: Ensure ollama group exists (important for persistent data)
+          group:
+            name: ollama
+            state: present
+            system: yes
+            
+        - name: Add user to ollama group (if needed, replace with the user you want to use)
+          user:
+            name: ollama  # Or a specific user if needed
+            groups: ollama
+            append: yes
+
+        - name: Create .ollama directory for persistent data (if it doesn't exist)
+          file:
+            path: /home/ollama/.ollama  # Or another suitable location
+            state: directory
+            owner: ollama
+            group: ollama
+            mode: 0755
+            recurse: yes  # Needed if creating subdirectories later
+      when: not ollama_installed.stat.exists or update_ollama is defined # Only run if not installed or update is requested
+
+    - name: Pull the latest Ollama image (using async for long-running task)
+      block:
+        - name: Pull latest image
+          async: 3600 # Allow up to 1 hour (adjust as needed)
+          poll: 0 # Don't wait for the task to finish
+          command: "ollama pull llama3.2:latest"
+          register: pull_result
+          args:
+            chdir: "/home/ollama" #Run from a user home directory
+            executable: /bin/bash
+
+        - name: Check pull status (optional - useful in AWX/Tower)
+          async_status:
+            jid: "{{ pull_result.job }}"
+          register: pull_status
+          until: pull_status.finished
+          retries: 360 # Check every 10 seconds for an hour (adjust as needed)
+          delay: 10
+
+        - debug:
+            msg: "Pull status: {{ pull_status }}"
+
+        - name: Fail if the image pull failed
+          fail_when: pull_status.result.rc != 0
+          msg: "Image pull failed: {{ pull_status.result.stderr }}"
+      become: false #Don't run the image pull as root
+      run_once: true #Only run once
+
+    - name: Run the Ollama image
+      block:
+        - name: Run the Ollama container (detach if needed)
+          command: "ollama run llama3.2:latest"
+          args:
+            chdir: "/home/ollama" #Run from a user home directory
+          detach: true # Run in the background
+          register: run_result
+      become: false
+      run_once: true #Only run once
+
+    - debug:
+        msg: "Ollama run command executed."
