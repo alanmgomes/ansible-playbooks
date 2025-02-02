@@ -46,16 +46,21 @@
     - name: Pull the latest Ollama image (using async for long-running task)
       block:
         - name: Pull latest image
-          async: 3600 # Allow up to 1 hour (adjust as needed)
-          poll: 0 # Don't wait for the task to finish
+          async: 3600
+          poll: 0
           command: "ollama pull llama3.2:latest"
           register: pull_result
           args:
-            chdir: "/home/ollama" #Run from a user home directory
+            chdir: /home/ollama
             executable: /bin/bash
+          ignore_errors: true # Allow the task to continue even if the pull fails
+
+        - name: Check if pull_result is defined (crucial check)
+          set_fact:
+            pull_result_defined: "{{ pull_result is defined }}"
 
         - name: Check pull status (optional - useful in AWX/Tower)
-          block:  # Nested block for conditional checking
+          block:
             - name: Get pull status
               async_status:
                 jid: "{{ pull_result.job }}"
@@ -74,7 +79,8 @@
                   - pull_status.result is defined
                   - pull_status.result.stderr is not defined
                 msg: "Image pull failed: {{ pull_status.result.stderr | default('No error message') }}"
-          when: pull_result.job is defined # Only check status if job ID exists
+          when: pull_result_defined and pull_result.job is defined # Double conditional check
+
       become: false
       run_once: true
 
