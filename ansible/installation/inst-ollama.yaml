@@ -55,25 +55,28 @@
             executable: /bin/bash
 
         - name: Check pull status (optional - useful in AWX/Tower)
-          async_status:
-            jid: "{{ pull_result.job }}"
-          register: pull_status
-          until: pull_status.finished
-          retries: 360 # Check every 10 seconds for an hour (adjust as needed)
-          delay: 10
+          block:  # Nested block for conditional checking
+            - name: Get pull status
+              async_status:
+                jid: "{{ pull_result.job }}"
+              register: pull_status
+              until: pull_status.finished
+              retries: 360
+              delay: 10
 
-        - debug:
-            msg: "Pull status: {{ pull_status }}"
+            - debug:
+                msg: "Pull status: {{ pull_status }}"
 
-        - name: Assert successful image pull
-          assert:
-            that:
-              - pull_status.result.rc == 0
-              - pull_status.result is defined
-              - pull_status.result.stderr is not defined  # Or check for empty string
-            msg: "Image pull failed: {{ pull_status.result.stderr | default('No error message') }}"
-      become: false #Don't run the image pull as root
-      run_once: true #Only run once
+            - name: Fail if the image pull failed
+              assert:
+                that:
+                  - pull_status.result.rc == 0
+                  - pull_status.result is defined
+                  - pull_status.result.stderr is not defined
+                msg: "Image pull failed: {{ pull_status.result.stderr | default('No error message') }}"
+          when: pull_result.job is defined # Only check status if job ID exists
+      become: false
+      run_once: true
 
     - name: Run the Ollama image in the background
       block:
