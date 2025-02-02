@@ -96,9 +96,11 @@
         - debug:
             msg: "Ollama running check: {{ ollama_running.stdout }}"
 
-        - name: Fail if ollama didn't seem to start
-          fail_when: ollama_running.rc != 0
-          msg: "Ollama did not seem to start correctly"
+        - name: Assert Ollama is running
+          assert:
+            that:
+              - ollama_running.rc == 0
+            msg: "Ollama did not seem to start correctly. pgrep output: {{ ollama_running.stdout }}"
 
       become: false
       run_once: true
