@@ -43,12 +43,15 @@
       args:
         chdir: "/home/pi/wyoming-satellite"
 
-    - name: Install Python dependencies
-      command: >
-        /home/pi/wyoming-satellite/.venv/bin/pip3 install --upgrade pip wheel setuptools &&
-        /home/pi/wyoming-satellite/.venv/bin/pip3 install -f https://synesthesiam.github.io/prebuilt-apps/ -e '.[all]'
+    - name: Upgrade pip, wheel, and setuptools
+      command: /home/pi/wyoming-satellite/.venv/bin/pip3 install --upgrade pip wheel setuptools
       args:
-        chdir: "/home/pi/wyoming-satellite"
+        chdir: /home/pi/wyoming-satellite
+
+    - name: Install additional Python dependencies
+      command: /home/pi/wyoming-satellite/.venv/bin/pip3 install -f https://synesthesiam.github.io/prebuilt-apps/ -e '.[all]'
+      args:
+        chdir: /home/pi/wyoming-satellite
 
     - name: Create Wyoming Satellite service file
       copy:
