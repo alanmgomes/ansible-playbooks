@@ -1,0 +1,140 @@
+---
+- name: Install Wyoming Satellite
+  hosts: "{{ hostname | default('all') }}" 
+  become: yes
+
+  vars:
+    respeaker: false
+    satellite_name: 'default'
+
+  tasks:
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install necessary packages
+      apt:
+        name: "{{ item }}"
+        state: present
+        install_recommends: no
+      loop:
+        - git
+        - python3-venv
+
+    - name: Clone Wyoming Satellite repository
+      git:
+        repo: "https://github.com/rhasspy/wyoming-satellite.git"
+        dest: "/home/pi/wyoming-satellite"
+
+    - name: Run Respeaker installation script (if respeaker is true)
+      command: sudo bash etc/install-respeaker-drivers.sh
+      args:
+        chdir: "/home/pi/wyoming-satellite"
+      when: respeaker
+
+    - name: Reboot after installing Respeaker drivers
+      reboot:
+      when: respeaker
+
+    - name: Create Python virtual environment
+      command: python3 -m venv .venv
+      args:
+        chdir: "/home/pi/wyoming-satellite"
+
+    - name: Install Python dependencies
+      pip:
+        requirements: "{{ item }}"
+        virtualenv: "/home/pi/wyoming-satellite/.venv"
+      loop:
+        - requirements.txt
+        - requirements_audio_enhancement.txt
+        - requirements_vad.txt
+      extra_args: "-f https://synesthesiam.github.io/prebuilt-apps/"
+
+    - name: Create Wyoming Satellite service file
+      copy:
+        content: |
+          [Unit]
+          Description=Wyoming Satellite
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          Type=simple
+          ExecStart=/home/pi/wyoming-satellite/script/run \
+            --name '{{ satellite_name }}' \
+            --uri 'tcp://0.0.0.0:10700' \
+            --snd-volume-multiplier 1.5 \
+            --awake-wav sounds/awake.wav \
+            --done-wav sounds/done.wav \
+            --mic-command 'arecord -D plughw:CARD=seeed2micvoicec,DEV=0 -r 16000 -c 1 -f S16_LE -t raw' \
+            --snd-command 'aplay -D plughw:CARD=seeed2micvoicec,DEV=0 -r 22050 -c 1 -f S16_LE -t raw'
+          WorkingDirectory=/home/pi/wyoming-satellite
+          Restart=always
+          RestartSec=1
+
+          [Install]
+          WantedBy=default.target
+        dest: /etc/systemd/system/wyoming-satellite.service
+
+    - name: Enable and start Wyoming Satellite service
+      systemd:
+        name: wyoming-satellite.service
+        enabled: true
+        state: started
+
+    - name: Install LED packages (if respeaker is true)
+      apt:
+        name:
+          - python3-spidev
+          - python3-gpiozero
+        state: present
+      when: respeaker
+
+    - name: Setup LED control environment (if respeaker is true)
+      command: python3 -m venv --system-site-packages .venv
+      args:
+        chdir: "/home/pi/wyoming-satellite/examples"
+      when: respeaker
+
+    - name: Install LED control dependencies (if respeaker is true)
+      pip:
+        name: wyoming==1.5.2
+        virtualenv: "/home/pi/wyoming-satellite/examples/.venv"
+      when: respeaker
+
+    - name: Create LED control service file (if respeaker is true)
+      copy:
+        content: |
+          [Unit]
+          Description=2Mic LEDs
+
+          [Service]
+          Type=simple
+          ExecStart=/home/pi/wyoming-satellite/examples/.venv/bin/python3 2mic_service.py --uri 'tcp://127.0.0.1:10500'
+          WorkingDirectory=/home/pi/wyoming-satellite/examples
+          Restart=always
+          RestartSec=1
+
+          [Install]
+          WantedBy=default.target
+        dest: /etc/systemd/system/2mic_leds.service
+      when: respeaker
+
+    - name: Update Wyoming Satellite service for LEDs (if respeaker is true)
+      lineinfile:
+        path: /etc/systemd/system/wyoming-satellite.service
+        regexp: '^Requires=2mic_leds.service$'
+        line: 'Requires=2mic_leds.service'
+        insertafter: '[Unit]'
+      when: respeaker
+
+    - name: Reload and restart services
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+      loop:
+        - wyoming-satellite.service
+        - 2mic_leds.service
+      when: respeaker
