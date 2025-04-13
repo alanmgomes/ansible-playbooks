@@ -42,15 +42,14 @@
       args:
         chdir: "/home/pi/wyoming-satellite"
 
-    - name: Install Python dependencies
-      pip:
-        requirements: "{{ item }}"
-        virtualenv: "/home/pi/wyoming-satellite/.venv"
-      loop:
-        - requirements.txt
-        - requirements_audio_enhancement.txt
-        - requirements_vad.txt
-      extra_args: "-f https://synesthesiam.github.io/prebuilt-apps/"
+    - name: Install Python dependencies using pip
+      command: >
+        /home/pi/wyoming-satellite/.venv/bin/pip3 install -f https://synesthesiam.github.io/prebuilt-apps/
+        -r requirements.txt
+        -r requirements_audio_enhancement.txt
+        -r requirements_vad.txt
+      args:
+        chdir: "/home/pi/wyoming-satellite"
 
     - name: Create Wyoming Satellite service file
       copy:
