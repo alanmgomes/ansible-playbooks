@@ -42,12 +42,10 @@
       args:
         chdir: "/home/pi/wyoming-satellite"
 
-    - name: Install Python dependencies using pip
+    - name: Install Python dependencies
       command: >
-        /home/pi/wyoming-satellite/.venv/bin/pip3 install -f https://synesthesiam.github.io/prebuilt-apps/
-        -r requirements.txt
-        -r requirements_audio_enhancement.txt
-        -r requirements_vad.txt
+        /home/pi/wyoming-satellite/.venv/bin/pip3 install --upgrade pip wheel setuptools &&
+        /home/pi/wyoming-satellite/.venv/bin/pip3 install -f https://synesthesiam.github.io/prebuilt-apps/ -e '.[all]'
       args:
         chdir: "/home/pi/wyoming-satellite"
 
@@ -129,11 +127,54 @@
         insertafter: '[Unit]'
       when: respeaker
 
-    - name: Reload and restart services
+    - name: Install OpenWakeWord dependencies
+      apt:
+        name: libopenblas-dev
+        state: present
+
+    - name: Clone OpenWakeWord repository
+      git:
+        repo: "https://github.com/rhasspy/wyoming-openwakeword.git"
+        dest: "/home/pi/wyoming-openwakeword"
+
+    - name: Set up OpenWakeWord
+      command: script/setup
+      args:
+        chdir: "/home/pi/wyoming-openwakeword"
+
+    - name: Create OpenWakeWord service file
+      copy:
+        content: |
+          [Unit]
+          Description=Wyoming openWakeWord
+
+          [Service]
+          Type=simple
+          ExecStart=/home/pi/wyoming-openwakeword/script/run --uri 'tcp://127.0.0.1:10400'
+          WorkingDirectory=/home/pi/wyoming-openwakeword
+          Restart=always
+          RestartSec=1
+
+          [Install]
+          WantedBy=default.target
+        dest: /etc/systemd/system/wyoming-openwakeword.service
+
+    - name: Update Wyoming Satellite service for OpenWakeWord
+      lineinfile:
+        path: /etc/systemd/system/wyoming-satellite.service
+        regexp: '^Requires=wyoming-openwakeword.service$'
+        line: 'Requires=wyoming-openwakeword.service'
+        insertafter: '[Unit]'
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    - name: Reload and restart all services
       systemd:
         name: "{{ item }}"
         state: restarted
       loop:
         - wyoming-satellite.service
         - 2mic_leds.service
+        - wyoming-openwakeword.service
       when: respeaker
