@@ -166,6 +166,19 @@
         line: 'Requires=wyoming-openwakeword.service'
         insertafter: '[Unit]'
 
+    - name: Add parameters to Wyoming Satellite service
+      blockinfile:
+        path: /etc/systemd/system/wyoming-satellite.service
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+          ExecStart=/home/pi/wyoming-satellite/script/run \
+            --wake-uri 'tcp://127.0.0.1:10400' \
+            --wake-word-name 'ok_nabu' \
+            --event-uri 'tcp://127.0.0.1:10500' \
+            --mic-auto-gain 5 \ 
+            --mic-noise-suppression 1 \
+      insertbefore: '^ExecStart='
+
     - name: Reload systemd daemon
       command: systemctl daemon-reload
 
