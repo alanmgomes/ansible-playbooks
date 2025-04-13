@@ -32,6 +32,7 @@
       args:
         chdir: "/home/pi/wyoming-satellite"
       when: respeaker
+      ignore_errors: yes
 
     - name: Reboot after installing Respeaker drivers
       reboot:
